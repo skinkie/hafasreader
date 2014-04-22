@@ -79,7 +79,7 @@ def parse_bitfeld(zip,filename,eckdaten):
                 bitfeld['dates'].append(eckdaten['fahrplan_start']  + timedelta(days=z))
         bitfelds.append(bitfeld)
     return bitfelds
-        
+
 
 def parse_bfkoord_geo(zip,filename):
     l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
@@ -226,7 +226,7 @@ def parse_attribut(zip,filename):
     attribut2 = []
     for line in l_content:
         if line[0] == '#':
-            attribut2.append({'code' : line[2:4], 
+            attribut2.append({'code' : line[2:4],
                               'ausgabe_der_teilstrecke' : line[5:7], #Or wtf ever this means?/
                               'einstellig' : line[8:10]})
         else:
@@ -290,7 +290,7 @@ def parse_zugart(zip,filename):
         if not angaben:
             item = {'code' : line[:3],
                     'produktklasse' : line[4:6],
-                    'tarifgruppe' : line[7:8], 
+                    'tarifgruppe' : line[7:8],
                     'ausgabesteuerung' : line[9:10],
                     'gattungsbezeichnung' : line[11:19].strip(),
                     'zuschlag' : line[20:21].strip(),
@@ -307,16 +307,48 @@ def parse_zugart(zip,filename):
             elif line[:8] == 'category':
                 zugart_category[int(line[8:11])]['category_'+language] = line[12:]
             #elif line[:6] == 'option': What does this do??
-                #zugart_class[int(line[6:8])]['option_'+language] = line[9:] 
+                #zugart_class[int(line[6:8])]['option_'+language] = line[9:]
             #elif line[:5] == 'class':
             #    zugart_class[int(line[5:7])]['class_'+language] = line[8:] #I dont think anyone cares for this, it's a superset of category
     return zugart
 
 def parse_durchbi(zip,filename):
-    print 'TODO DURCHBI'
+    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
+    durchbi = []
+    for line in l_content:
+        item = { 'fahrtnummer1' : line[:5],
+                 'verwaltungfahtr1': line[6:12],
+                 'letzterhaltderfahrt1': line[13:20],
+                 'fahrtnummer2': line[21:26],
+                 'verwaltungfahtr1': line[27:33],
+                 'verkehrstagebitfeldnummer': line[34:40],
+                 'ersterhaltderfahrt2': line[41:48],
+                 'attributmarkierungdurchbindung': line[49:51],
+                 'kommentar': line[52:] }
+        durchbi.append(item)
+    return durchbi
 
 def parse_zeitvs(zip,filename):
-    print 'TODO ZEITVS'
+    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
+    zeitvs = {}
+    for line in l_content:
+        bahnhofsnummer = line[:7]
+
+        if (len(line) >= 17 and line[16] != '%'):
+            item = { 'bahnhofsnummer' : bahnhofsnummer,
+                     'zeitverschiebung': line[8:13],
+                     'vondatum': line[14:22],
+                     'vonzugehorigezeit': line[23:26],
+                     'bisdatum': line[29:36],
+                     'biszugehorigezeit': line[37:41],
+                     'kommentar': line[42:] }
+        else:
+            item = zeitv[bahnhofsnummer].copy()
+            item['bahnhofsnummer'] = bahnhofsnummer
+
+        zeitvs[bahnhofsnummer] = item
+
+    return zeitvs.values()
 
 def filedict(zip):
     dict = {}
