@@ -229,3 +229,25 @@ CREATE TABLE betrieb2_en (
     betreibernummer integer PRIMARY KEY,
     verwaltungen varchar(255)
 );
+
+CREATE TABLE durchbi (
+    fahrtnummer1 integer,
+    verwaltungfahrt1 char(5),
+    letzterhaltfahrt1 integer,
+    fahrtnummer1 integer,
+    verkehrstagebitfeldnummer integer,
+    ersterhaltderfahrt2 integer,
+    attributmarkierungdurchbindung char(1),
+    kommentar varchar(255)
+);
+
+CREATE TABLE zeitvs (
+    bahnhofnummer integer PRIMARY KEY,
+    zeitverschiebung integer,
+    vondatum integer,
+    vonzugehorigezeit integer,
+    bisdatum integer,
+    biszugehorigzeit integer,
+    kommentar varchar(255)
+);
+
