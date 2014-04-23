@@ -53,6 +53,144 @@ def parse_bfkoord(zip,filename):
                         'z' : z})
     return bfkoord
 
+def parse_fplan(zip,filename):
+    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
+    z_zeilen = []
+    g_zeilen = []
+    a_ve_zeilen = []
+    a_zeilen = []
+    i_zeilen = []
+    l_zeilen = []
+    r_zeile = []
+    gr_zeile = []
+    sh_zeile = []
+    laufwegzeilen = []
+
+    for line in l_content:
+        kommentar = { 'fahrtnummer': line[60:65],
+                      'verwaltung': line[66:72],
+                      'variante': line[76:78],
+                      'zeilennummer': line[80:83] }
+
+        if line[:2] == '*Z':
+            item = { 'fahrtnummer': line[3:8],
+                     'verwaltung': line[9:15],
+                     'variante': line[19:21],
+                     'taktanzahl': line[22:25],
+                     'takzeit': line[26:29] }
+
+        elif line[:2] == '*G':
+            item = { 'verkehrsmittel': line[3:6],
+                     'laufwegsindexab': line[7:14],
+                     'laufwegsindexbis': line[15:22],
+                     'indexab': line[23:29],
+                     'indexbis': line[30:36] }
+
+        elif line[:5] == '*A VE':
+            item = { 'laufwegsindexab': line[6:13],
+                     'laufwegsindexbis': line[14:21],
+                     'verkehrstagenummer': line[22:28],
+                     'indexab': line[29:35],
+                     'indexbis': line[36:42] }
+
+        elif line[:2] == '*A':
+            item = { 'attributscode': line[3:5],
+                     'laufwegsindexab': line[6:13],
+                     'laufwegsindexbis': line[14:21],
+                     'bitfeldnummer': line[22:28],
+                     'indexab': line[29:35],
+                     'indexbis': line[36:42] }
+
+        elif line[:2] == '*I':
+            item = { 'infotextcode': line[3:5],
+                     'laufwegsindexab': line[6:13],
+                     'laufwegsindexbis': line[14:21],
+                     'bitfeldnummer': line[22:28],
+                     'infotextnummer': line[29:36],
+                     'indexab': line[37:43],
+                     'indexbis': line[44:50] }
+
+        elif line[:2] == '*L':
+            item = { 'liniennummer': line[3:11],
+                     'laufwegsindexab': line[12:19],
+                     'laufwegsindexbis': line[20:27],
+                     'indexab': line[28:34],
+                     'indexbis': line[35:41] }
+
+        elif line[:2] == '*R':
+            item = { 'kennung': line[3:4],
+                     'richtungscode': line[5:12],
+                     'laufwegsindexab': line[13:20],
+                     'laufwegsindexbis': line[21:28],
+                     'indexab': line[29:35],
+                     'indexbis': line[36:42] }
+
+        elif line[:3] == '*GR':
+            item = { 'grenzpunktnummer': line[4:11],
+                     'laufwegsindexletzten': line[12:19],
+                     'laufwegsindexersten': line[21:27],
+                     'indexletzten': line[28:34],
+                     'indexersten': line[35:41] }
+
+        elif line[:3] == '*SH':
+            item = { 'laufwegindex': line[4:11],
+                     'bitfeldnummer': line[12:18],
+                     'index': line[19:25] }
+
+        else:
+            item = { 'haltesnellennummer': line[:7],
+                     'haltesnellenname': line[8:29],
+                     'ankunfstzeit': line[29:35],
+                     'abfahrtszeit': line[36:42],
+                     'fahrtnummer': line[43:48],
+                     'verwaltung': line[49:55],
+                     'x': line[56:57],
+                     'kommentar': line[58:] }
+
+        item.update(kommentar)
+
+def parse_dirwagen(zip,filename):
+    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
+    kw_zeilen = []
+    kwz_zeilen = []
+    a_ve_zeilen = []
+    a_zeilen = []
+
+    for line in l_content:
+        kommentar = { 'fahrtnummer': line[60:65],
+                      'verwaltung': line[66:72],
+                      'variante': line[76:78],
+                      'zeilennummer': line[80:83] }
+
+        kurswagennummer = None
+
+        if line[:3] == '*KW':
+            kurswagennummer = line[4:9]
+
+        elif line[:4] == '*KWZ':
+            item = { 'kurswagennummer': kurswagennummer,
+                     'zugnummer': line[5:10],
+                     'verhaltung': line[11:17],
+                     'bahnhofsnummerab': line[18:25],
+                     'bahnhofsname': line[26:46],
+                     'bahnhofsnummerbis': line[47:54],
+                     'abfahrtzeit1': line[76:82],
+                     'abfahrtzeit2': line[83:89] }
+
+        elif line[:5] == '*A VE':
+            item = { 'kurswagennummer': kurswagennummer,
+                     'laufwegindexab': line[6:13],
+                     'laufwegindexbis': line[14:21],
+                     'verkehrstagenummer': line[22:28] }
+
+        elif line[:2] == '*A':
+            item = { 'kurswagennummer': kurswagennummer,
+                     'attributscode': line[3:5],
+                     'laufwegsindexab': line[6:13],
+                     'laufwegsindexbis': line[14:21] }
+
+        item.update(kommentar)
+
 def parse_eckdaten(zip,filename):
     l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     eckdaten = {}
@@ -390,5 +528,7 @@ def load(path,filename):
     betrieb1_de,betrieb2_de = parse_betrieb(zip,files['BETRIEB_DE'])
     betrieb1_it,betrieb2_it= parse_betrieb(zip,files['BETRIEB_IT'])
     betrieb1_fr,betrieb2_fr = parse_betrieb(zip,files['BETRIEB_FR'])
+    dirwagen = parse_dirwagen(zip,files['DIRWAGEN'])
+    fplan = parse_fplan(zip,files['FPLAN'])
 if __name__ == '__main__':
     load(sys.argv[1],sys.argv[2])
