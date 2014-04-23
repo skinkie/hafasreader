@@ -65,6 +65,7 @@ def parse_fplan(zip,filename):
     gr_zeile = []
     sh_zeile = []
     laufwegzeilen = []
+    key = None
 
     for line in l_content:
         kommentar = { 'fahrtnummer': line[60:65],
@@ -73,6 +74,12 @@ def parse_fplan(zip,filename):
                       'zeilennummer': line[80:83] }
 
         if line[:2] == '*Z':
+            # line[16:19] contains empty data, might not be the
+            # case in different incarnations, meaning is unknown.
+            # the current format has all keys, on each line,
+            # alternatively we should have key = line[3:21],
+            # and add it to the structure kommentar
+
             item = { 'fahrtnummer': line[3:8],
                      'verwaltung': line[9:15],
                      'variante': line[19:21],
@@ -80,7 +87,8 @@ def parse_fplan(zip,filename):
                      'takzeit': line[26:29] }
 
         elif line[:2] == '*G':
-            item = { 'verkehrsmittel': line[3:6],
+            item = { 'key':
+                     'verkehrsmittel': line[3:6],
                      'laufwegsindexab': line[7:14],
                      'laufwegsindexbis': line[15:22],
                      'indexab': line[23:29],
@@ -155,14 +163,13 @@ def parse_dirwagen(zip,filename):
     kwz_zeilen = []
     a_ve_zeilen = []
     a_zeilen = []
+    kurswagennummer = None
 
     for line in l_content:
         kommentar = { 'fahrtnummer': line[60:65],
                       'verwaltung': line[66:72],
                       'variante': line[76:78],
                       'zeilennummer': line[80:83] }
-
-        kurswagennummer = None
 
         if line[:3] == '*KW':
             kurswagennummer = line[4:9]
