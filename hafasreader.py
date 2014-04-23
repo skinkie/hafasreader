@@ -85,8 +85,7 @@ def parse_fplan(zip,filename):
                      'takzeit': line[26:29] }
 
         elif line[:2] == '*G':
-            item = { 'key':
-                     'verkehrsmittel': line[3:6],
+            item = { 'verkehrsmittel': line[3:6],
                      'laufwegsindexab': line[7:14],
                      'laufwegsindexbis': line[15:22],
                      'indexab': line[23:29],
