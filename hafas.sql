@@ -251,3 +251,171 @@ CREATE TABLE zeitvs (
     kommentar varchar(255)
 );
 
+CREATE TABLE fplan_z (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    taktanzahl smallint,
+    takzeit smallint
+    PRIMARY KEY (fahrtnummer, verwaltung, leer, variante)
+);
+
+CREATE TABLE fplan_g (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    verkehrsmittel char (3),
+    laufwegsindexab integer,
+    laufwegsindexbis integer,
+    indexab integer,
+    indexbis integer,
+    PRIMARY KEY (fahrtnummer, verwaltung, leer, variante, verkehrsmittel),
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_ave (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    laufwegsindexab integer,
+    laufwegsindexbis integer,
+    verkehrstagenummer smallint,
+    indexab integer,
+    indexbis integer,
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_a (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    attributscode char(2) NOT NULL,
+    laufwegsindexab integer,
+    laufwegsindexbis integer,
+    bitfeldnummer smallint NOT NULL,
+    indexab integer,
+    indexbis integer,
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_i (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    infotextcode char(2) NOT NULL,
+    laufwegsindexab integer,
+    laufwegsindexbis integer,
+    bitfeldnummer smallint NOT NULL,
+    infotextnummer integer NOT NULL,
+    indexab integer,
+    indexbis integer,
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_l (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    linienummer char(8) NOT NULL,
+    laufwegsindexab integer,
+    laufwegsindexbis integer,
+    indexab integer,
+    indexbis integer,
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_l (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    kennung char(1),
+    richtungscode char(7),
+    laufwegsindexab integer,
+    laufwegsindexbis integer,
+    indexab integer,
+    indexbis integer,
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_gr (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    grenzpunktnummer char(7),
+    laufwegsindexletzten integer,
+    laufwegsindexersten integer,
+    indexletzten integer,
+    indexersten integer,
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_sh (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    laufwegindex integer NOT NULL,
+    bitfeldnummer smallint,
+    indexfur integer
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE fplan_sh (
+    fahrtnummer integer,
+    verwaltung char(6),
+    leer char(3),
+    variante smallint,
+    haltesnellennummer integer,
+    haltesnellenname varchar(21),
+    ankunfstzeit integer,
+    abfahrtszeit integer,
+    fahrtnummer integer,
+    verwaltung char(6),
+    x char(1),
+    FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
+);
+
+CREATE TABLE dirwagen_kw (
+    kurswagennummer integer primary key
+);
+
+CREATE TABLE dirwagen_kwz (
+    kurswagennummer integer,
+    zugnummer integer,
+    verhaltung char(6),
+    bahnhofsnummerab integer,
+    bahnhofsname varchar(20),
+    bahnhofsnummerbis integer,
+    abfahrtzeit1 integer,
+    abfahrtzeit2 integer,
+    FOREIGN KEY (kurswagennummer) REFERENCES dirwagen_kw
+);
+
+CREATE TABLE dirwagen_ave (
+    kurswagennummer integer,
+    laufwegindexab integer,
+    laufwegindexbis integer,
+    verkehrstagenummer smallint,
+    FOREIGN KEY (kurswagennummer) REFERENCES dirwagen_kw
+);
+
+CREATE TABLE dirwagen_a (
+    kurswagennummer integer,
+    attributscode char(2) NOT NULL,
+    laufwegsindexab integer,
+    laufwegsindexbis integer,
+    bitfeldnummer smallint NOT NULL,
+    indexab integer,
+    indexbis integer,
+    FOREIGN KEY (kurswagennummer) REFERENCES dirwagen_kw
+);
+
+

@@ -65,25 +65,23 @@ def parse_fplan(zip,filename):
     gr_zeile = []
     sh_zeile = []
     laufwegzeilen = []
-    key = None
+    primary = None
 
     for line in l_content:
+        # SBB has all keys already per line.
         kommentar = { 'fahrtnummer': line[60:65],
                       'verwaltung': line[66:72],
+                      'leer': line[73:76],
                       'variante': line[76:78],
                       'zeilennummer': line[80:83] }
 
         if line[:2] == '*Z':
-            # line[16:19] contains empty data, might not be the
-            # case in different incarnations, meaning is unknown.
-            # the current format has all keys, on each line,
-            # alternatively we should have key = line[3:21],
-            # and add it to the structure kommentar
+            primary = { 'fahrtnummer': line[3:8],
+                        'verwaltung': line[9:15],
+                        'leer': line[16:19],
+                        'variante': line[19:21] }
 
-            item = { 'fahrtnummer': line[3:8],
-                     'verwaltung': line[9:15],
-                     'variante': line[19:21],
-                     'taktanzahl': line[22:25],
+            item = { 'taktanzahl': line[22:25],
                      'takzeit': line[26:29] }
 
         elif line[:2] == '*G':
@@ -143,7 +141,7 @@ def parse_fplan(zip,filename):
         elif line[:3] == '*SH':
             item = { 'laufwegindex': line[4:11],
                      'bitfeldnummer': line[12:18],
-                     'index': line[19:25] }
+                     'indexfur': line[19:25] }
 
         else:
             item = { 'haltesnellennummer': line[:7],
@@ -152,9 +150,9 @@ def parse_fplan(zip,filename):
                      'abfahrtszeit': line[36:42],
                      'fahrtnummer': line[43:48],
                      'verwaltung': line[49:55],
-                     'x': line[56:57],
-                     'kommentar': line[58:] }
+                     'x': line[56:57] }
 
+        item.update(primary)
         item.update(kommentar)
 
 def parse_dirwagen(zip,filename):
@@ -166,13 +164,9 @@ def parse_dirwagen(zip,filename):
     kurswagennummer = None
 
     for line in l_content:
-        kommentar = { 'fahrtnummer': line[60:65],
-                      'verwaltung': line[66:72],
-                      'variante': line[76:78],
-                      'zeilennummer': line[80:83] }
-
         if line[:3] == '*KW':
             kurswagennummer = line[4:9]
+            item = { 'kurswagennummer': kurswagennummer }
 
         elif line[:4] == '*KWZ':
             item = { 'kurswagennummer': kurswagennummer,
