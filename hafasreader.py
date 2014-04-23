@@ -189,7 +189,7 @@ def parse_dirwagen(zip,filename):
                      'laufwegsindexab': line[6:13],
                      'laufwegsindexbis': line[14:21] }
 
-        item.update(kommentar)
+        #item.update(kommentar)
 
 def parse_eckdaten(zip,filename):
     l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
@@ -349,7 +349,6 @@ def parse_betrieb(zip,filename):
             betrieb2.append({'betreibernummer' : line[:5],
                              'verwaltungen' : line[8:]})
         else:
-            raise Exception("Parse kurzname,longname,name here")
             betrieb1.append({'betreibernummer' : line[:5],
                              'kurzname' : line[8:13],
                              'langname' : line[14:20],
@@ -480,8 +479,10 @@ def parse_zeitvs(zip,filename):
                      'bisdatum': line[29:36],
                      'biszugehorigezeit': line[37:41],
                      'kommentar': line[42:] }
+        elif len(line) == 1 and line[0] == '%':
+            continue
         else:
-            item = zeitv[bahnhofsnummer].copy()
+            item = zeitvs[bahnhofsnummer].copy()
             item['bahnhofsnummer'] = bahnhofsnummer
 
         zeitvs[bahnhofsnummer] = item
@@ -522,7 +523,7 @@ def load(path,filename):
         vereinig = parse_vereinig(zip,files['VEREINIG'])
     durchbi = parse_durchbi(zip,files['DURCHBI'])
     richtung = parse_richtung(zip,files['RICHTUNG'])
-    zeitvs = parse_zeitvs(zip,files['ZEITVS'])
+    #zeitvs = parse_zeitvs(zip,files['ZEITVS']) #TODO TODO TODO
     gleis = parse_gleis(zip,files['GLEIS'])
     betrieb1_en,betrieb2_en = parse_betrieb(zip,files['BETRIEB_EN'])
     betrieb1_de,betrieb2_de = parse_betrieb(zip,files['BETRIEB_DE'])
