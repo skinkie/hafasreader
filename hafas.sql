@@ -365,7 +365,7 @@ CREATE TABLE fplan_l (
     FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
 );
 
-CREATE TABLE fplan_l (
+CREATE TABLE fplan_r (
     fahrtnummer integer,
     verwaltung char(6),
     leer char(3),
@@ -399,22 +399,22 @@ CREATE TABLE fplan_sh (
     variante smallint,
     laufwegindex integer NOT NULL,
     bitfeldnummer smallint,
-    indexfur integer
+    indexfur integer,
     FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
 );
 
-CREATE TABLE fplan_sh (
+CREATE TABLE fplan_laufweg (
     fahrtnummer integer,
     verwaltung char(6),
     leer char(3),
     variante smallint,
-    haltesnellennummer integer,
-    haltesnellenname varchar(21),
+    haltestellennummer integer,
+    haltestellenname varchar(21),
     ankunfstzeit integer,
     abfahrtszeit integer,
-    fahrtnummer integer,
-    verwaltung char(6),
-    x char(1),
+    fahrtnummer1 integer,
+    verwaltung1 char(6),
+    x char,
     FOREIGN KEY (fahrtnummer, verwaltung, leer, variante) REFERENCES fplan_z
 );
 

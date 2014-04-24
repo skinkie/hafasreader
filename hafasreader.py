@@ -88,20 +88,24 @@ def parse_bfkoord(zip,filename):
     return bfkoord
 
 def parse_fplan(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
-    z_zeilen = []
-    g_zeilen = []
-    a_ve_zeilen = []
-    a_zeilen = []
-    i_zeilen = []
-    l_zeilen = []
-    r_zeile = []
-    gr_zeile = []
-    sh_zeile = []
-    laufwegzeilen = []
+    file = zip.open(filename)
+
+    fplan = {}
+    fplan['Z'] = []
+    fplan['G'] = []
+    fplan['A_VE'] = []
+    fplan['A'] = []
+    fplan['I'] = []
+    fplan['R'] = []
+    fplan['GR'] = []
+    fplan['SH'] = []
+    fplan['L'] = []
+    fplan['LAUFWEG'] = []
+
     primary = None
 
-    for line in l_content:
+    for line in file:
+        line = line.decode(charset)
         # SBB has all keys already per line.
         kommentar = { 'fahrtnummer': line[60:65],
                       'verwaltung': line[66:72],
@@ -117,6 +121,8 @@ def parse_fplan(zip,filename):
 
             item = { 'taktanzahl': line[22:25],
                      'takzeit': line[26:29] }
+            item.update(primary)
+            fplan['Z'].append(item)
 
         elif line[:2] == '*G':
             item = { 'verkehrsmittel': line[3:6],
@@ -124,6 +130,8 @@ def parse_fplan(zip,filename):
                      'laufwegsindexbis': line[15:22],
                      'indexab': line[23:29],
                      'indexbis': line[30:36] }
+            item.update(primary)
+            fplan['G'].append(item)
 
         elif line[:5] == '*A VE':
             item = { 'laufwegsindexab': line[6:13],
@@ -131,6 +139,8 @@ def parse_fplan(zip,filename):
                      'verkehrstagenummer': line[22:28],
                      'indexab': line[29:35],
                      'indexbis': line[36:42] }
+            item.update(primary)
+            fplan['A_VE'].append(item)
 
         elif line[:2] == '*A':
             item = { 'attributscode': line[3:5],
@@ -139,6 +149,8 @@ def parse_fplan(zip,filename):
                      'bitfeldnummer': line[22:28],
                      'indexab': line[29:35],
                      'indexbis': line[36:42] }
+            item.update(primary)
+            fplan['A'].append(item)
 
         elif line[:2] == '*I':
             item = { 'infotextcode': line[3:5],
@@ -148,6 +160,8 @@ def parse_fplan(zip,filename):
                      'infotextnummer': line[29:36],
                      'indexab': line[37:43],
                      'indexbis': line[44:50] }
+            item.update(primary)
+            fplan['I'].append(item)
 
         elif line[:2] == '*L':
             item = { 'liniennummer': line[3:11],
@@ -155,6 +169,8 @@ def parse_fplan(zip,filename):
                      'laufwegsindexbis': line[20:27],
                      'indexab': line[28:34],
                      'indexbis': line[35:41] }
+            item.update(primary)
+            fplan['L'].append(item)
 
         elif line[:2] == '*R':
             item = { 'kennung': line[3:4],
@@ -163,6 +179,8 @@ def parse_fplan(zip,filename):
                      'laufwegsindexbis': line[21:28],
                      'indexab': line[29:35],
                      'indexbis': line[36:42] }
+            item.update(primary)
+            fplan['R'].append(item)
 
         elif line[:3] == '*GR':
             item = { 'grenzpunktnummer': line[4:11],
@@ -170,11 +188,15 @@ def parse_fplan(zip,filename):
                      'laufwegsindexersten': line[21:27],
                      'indexletzten': line[28:34],
                      'indexersten': line[35:41] }
+            item.update(primary)
+            fplan['GR'].append(item)
 
         elif line[:3] == '*SH':
             item = { 'laufwegindex': line[4:11],
                      'bitfeldnummer': line[12:18],
                      'indexfur': line[19:25] }
+            item.update(primary)
+            fplan['SH'].append(item)
 
         else:
             item = { 'haltesnellennummer': line[:7],
@@ -184,9 +206,8 @@ def parse_fplan(zip,filename):
                      'fahrtnummer': line[43:48],
                      'verwaltung': line[49:55],
                      'x': line[56:57] }
-
-        item.update(primary)
-        item.update(kommentar)
+            fplan['LAUFWEG'].append(item)
+    return fplan
 
 def parse_dirwagen(zip,filename):
     l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
@@ -580,6 +601,20 @@ def sql_bitfeld(conn,bitfeld):
     cur.close()
     f.close()
 
+def sql_fplan(conn,fplan):
+    primary = ['fahrtnummer','verwaltung','leer','variante']
+    simple_list_writer(conn,'fplan_z', primary +['taktanzahl','takzeit'], fplan['Z'])
+    simple_list_writer(conn,'fplan_g', primary +['verkehrsmittel','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['G'])
+    simple_list_writer(conn,'fplan_ave', primary +['laufwegsindexab','laufwegsindexbis','verkehrstagenummer','indexab','indexbis'], fplan['A_VE'])
+    simple_list_writer(conn,'fplan_a', primary +['attributscode','laufwegsindexab','laufwegsindexbis','bitfeldnummer','indexab','indexbis'], fplan['A'])
+    simple_list_writer(conn,'fplan_i', primary +['infotextcode','laufwegsindexab','laufwegsindexbis','bitfeldnummer','infotextnummer','indexab','indexbis'], fplan['I'])
+    simple_list_writer(conn,'fplan_r', primary +['richtungscode','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['R'])
+    simple_list_writer(conn,'fplan_gr', primary +['grenzpunktnummer','laufwegsindexletzten','laufwegsindexersten','indexletzten','indexersten'], fplan['GR'])
+    simple_list_writer(conn,'fplan_sh', primary +['richtungscode','laufwegindex','bitfeldnummer','indexfur'], fplan['SH'])
+    simple_list_writer(conn,'fplan_l', primary +['linienummer','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['L'])
+    simple_list_writer(conn,'fplan_laufweg', primary +['linienummer','haltestellennummer','haltestellenname','ankunfstzeit','abfahrtszeit','fahrtnummer','verwaltung','x'], fplan['L'])
+
+
 def load(path,filename):
     zip = zipfile.ZipFile(path+'/'+filename,'r')
     files = filedict(zip)
@@ -615,7 +650,8 @@ def load(path,filename):
     betrieb1_it,betrieb2_it= parse_betrieb(zip,files['BETRIEB_IT'])
     betrieb1_fr,betrieb2_fr = parse_betrieb(zip,files['BETRIEB_FR'])
     dirwagen_kw,dirwagen_kwz,dirwagen_ave,dirwagen_a = parse_dirwagen(zip,files['DIRWAGEN'])
-    #fplan = parse_fplan(zip,files['FPLAN'])
+    fplan = parse_fplan(zip,files['FPLAN'])
+
     #Import to SQL
     conn = psycopg2.connect("dbname='hafastmp'")
     simple_list_writer(conn,'bahnhof', ['haltestellennummer','name','longname','abkurzung','synonym'], bahnhof)
@@ -674,6 +710,7 @@ def load(path,filename):
     simple_list_writer(conn,'dirwagen_kwz', ['kurswagennummer','zugnummer','verhaltung','bahnhofsnummerab','bahnhofsname','bahnhofsnummerbis','abfahrtzeit1','abfahrtzeit2'], dirwagen_kwz)
     simple_list_writer(conn,'dirwagen_ave', ['kurswagennummer','laufwegindexab','laufwegindexbis','verkehrstagenummer'], dirwagen_ave)
     simple_list_writer(conn,'dirwagen_a', ['kurswagennummer','attributscode','laufwegsindexab','laufwegsindexbis','bitfeldnummer','indexab','indexbis'], dirwagen_a)
+    sql_fplan(conn,fplan)
     conn.commit()
 if __name__ == '__main__':
     load(sys.argv[1],sys.argv[2])
