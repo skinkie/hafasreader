@@ -10,8 +10,7 @@ CREATE TABLE bfkoord (
     haltestellennummer integer PRIMARY KEY,
     x float,
     y float,
-    z smallint,
-    synonym varchar(50)
+    z smallint
 );
 
 CREATE TABLE gleis (
@@ -19,7 +18,7 @@ CREATE TABLE gleis (
     fahrtnummer integer,
     verwaltung varchar(6),
     gleisinformation varchar(8),
-    zeit varchar(10)
+    zeit varchar(10),
     verkehrstageschlussel integer
 );
 
@@ -32,8 +31,7 @@ CREATE TABLE bfkoord_geo (
     haltestellennummer integer PRIMARY KEY,
     x float,
     y float,
-    z smallint,
-    synonym varchar(50)
+    z smallint
 );
 
 CREATE TABLE umsteigv (
@@ -90,10 +88,10 @@ CREATE TABLE richtung (
 CREATE TABLE eckdaten (
     fahrplan_start DATE,
     fahrplan_end DATE,
-    bezeichnung VARCHAR(10),
+    bezeichnung VARCHAR(25),
     fahrplan_periode VARCHAR(10),
     land VARCHAR(10),
-    exportdatum VARCHAR(10),
+    exportdatum VARCHAR(25),
     hrdf_version VARCHAR(10),
     lieferant VARCHAR(10)
 );
@@ -101,14 +99,13 @@ CREATE TABLE eckdaten (
 CREATE TABLE metabhf_ubergangbeziehung (
     haltestellennummer1 integer,
     haltestellennummer2 integer,
-    dauer integer,
-    PRIMARY KEY(haltestellennummer1,haltestellennummer2)
+    dauer integer
 );
 
 CREATE TABLE metabhf_ubergangbeziehung_a (
     haltestellennummer1 integer,
     haltestellennummer2 integer,
-    attributscode char
+    attributscode varchar(3)
 );
 
 CREATE TABLE bfprios (
@@ -125,11 +122,10 @@ CREATE TABLE metabhf_haltestellengruppen (
 CREATE TABLE umsteigb (
     haltestellennummer integer,
     umsteigezeit_ic integer,
-    umsteigezeit integer,
-    PRIMARY KEY(haltestellennummer)
+    umsteigezeit integer
 );
 
-CREATE TABLE attribute_FR_1 (
+CREATE TABLE attribut1_fr (
     code varchar(2) PRIMARY KEY,
     haltestellenzugehorigkeit integer,
     attributsausgabeprioritat integer,
@@ -137,7 +133,7 @@ CREATE TABLE attribute_FR_1 (
     text varchar(70)
 );
 
-CREATE TABLE attribute_IT_1 (
+CREATE TABLE attribut1_it (
     code varchar(2) PRIMARY KEY,
     haltestellenzugehorigkeit integer,
     attributsausgabeprioritat integer,
@@ -145,7 +141,7 @@ CREATE TABLE attribute_IT_1 (
     text varchar(70)
 );
 
-CREATE TABLE attribute_de_1 (
+CREATE TABLE attribut1_de (
     code varchar(2) PRIMARY KEY,
     haltestellenzugehorigkeit integer,
     attributsausgabeprioritat integer,
@@ -153,7 +149,7 @@ CREATE TABLE attribute_de_1 (
     text varchar(70)
 );
 
-CREATE TABLE attribute_en_1 (
+CREATE TABLE attribut1_en (
     code varchar(2) PRIMARY KEY,
     haltestellenzugehorigkeit integer,
     attributsausgabeprioritat integer,
@@ -161,25 +157,25 @@ CREATE TABLE attribute_en_1 (
     text varchar(70)
 );
 
-CREATE TABLE attribute_FR_2 (
+CREATE TABLE attribut2_fr (
     code varchar(2) PRIMARY KEY,
     ausgabe_der_teilstrecke varchar(3),
     einstellig varchar(3)
 );
 
-CREATE TABLE attribute_IT_2 (
+CREATE TABLE attribut2_IT (
     code varchar(2) PRIMARY KEY,
     ausgabe_der_teilstrecke varchar(3),
     einstellig varchar(3)
 );
 
-CREATE TABLE attribute_de_2 (
+CREATE TABLE attribut2_de (
     code varchar(2) PRIMARY KEY,
     ausgabe_der_teilstrecke varchar(3),
     einstellig varchar(3)
 );
 
-CREATE TABLE attribute_en_2 (
+CREATE TABLE attribut2_en (
     code varchar(2) PRIMARY KEY,
     ausgabe_der_teilstrecke varchar(3),
     einstellig varchar(3)
@@ -190,7 +186,7 @@ CREATE TABLE zugart (
     produktklasse integer,
     tarifgruppe char,
     ausgabesteuerung integer,
-    gattungsbezeichnung char,
+    gattungsbezeichnung varchar(10),
     zuschlag integer,
     flag char,
     gattungsbildernamen integer,
@@ -215,14 +211,28 @@ CREATE TABLE infotext_de (
     informationstext varchar(255)
 );
 
-CREATE TABLE infotext_de (
+CREATE TABLE infotext_it (
     infotextnummer integer PRIMARY KEY,
     informationstext varchar(255)
 );
 
+CREATE TABLE betrieb1_de (
+    betreibernummer integer PRIMARY KEY,
+    kurzname varchar(10),
+    langname varchar(10),
+    name varchar(100)
+);
+
+CREATE TABLE betrieb2_de (
+    betreibernummer integer PRIMARY KEY,
+    verwaltungen varchar(255)
+);
+
 CREATE TABLE betrieb1_en (
     betreibernummer integer PRIMARY KEY,
-    informationstext varchar(255)
+    kurzname varchar(10),
+    langname varchar(10),
+    name varchar(100)
 );
 
 CREATE TABLE betrieb2_en (
@@ -230,11 +240,36 @@ CREATE TABLE betrieb2_en (
     verwaltungen varchar(255)
 );
 
+CREATE TABLE betrieb1_fr (
+    betreibernummer integer PRIMARY KEY,
+    kurzname varchar(10),
+    langname varchar(10),
+    name varchar(100)
+);
+
+CREATE TABLE betrieb2_fr (
+    betreibernummer integer PRIMARY KEY,
+    verwaltungen varchar(255)
+);
+
+CREATE TABLE betrieb1_it (
+    betreibernummer integer PRIMARY KEY,
+    kurzname varchar(10),
+    langname varchar(10),
+    name varchar(100)
+);
+
+CREATE TABLE betrieb2_it (
+    betreibernummer integer PRIMARY KEY,
+    verwaltungen varchar(255)
+);
+
 CREATE TABLE durchbi (
     fahrtnummer1 integer,
-    verwaltungfahrt1 char(5),
+    verwaltungfahrt1 char(6),
     letzterhaltfahrt1 integer,
-    fahrtnummer1 integer,
+    fahrtnummer2 integer,
+    verwaltungfahrt2 char(6),
     verkehrstagebitfeldnummer integer,
     ersterhaltderfahrt2 integer,
     attributmarkierungdurchbindung char(1),
@@ -257,7 +292,7 @@ CREATE TABLE fplan_z (
     leer char(3),
     variante smallint,
     taktanzahl smallint,
-    takzeit smallint
+    takzeit smallint,
     PRIMARY KEY (fahrtnummer, verwaltung, leer, variante)
 );
 
@@ -403,7 +438,7 @@ CREATE TABLE dirwagen_ave (
     kurswagennummer integer,
     laufwegindexab integer,
     laufwegindexbis integer,
-    verkehrstagenummer smallint,
+    verkehrstagenummer integer,
     FOREIGN KEY (kurswagennummer) REFERENCES dirwagen_kw
 );
 
@@ -412,7 +447,7 @@ CREATE TABLE dirwagen_a (
     attributscode char(2) NOT NULL,
     laufwegsindexab integer,
     laufwegsindexbis integer,
-    bitfeldnummer smallint NOT NULL,
+    bitfeldnummer integer NOT NULL,
     indexab integer,
     indexbis integer,
     FOREIGN KEY (kurswagennummer) REFERENCES dirwagen_kw
