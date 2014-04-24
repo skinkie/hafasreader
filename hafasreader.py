@@ -114,22 +114,22 @@ def parse_fplan(zip,filename):
                       'zeilennummer': line[80:83] }
 
         if line[:2] == '*Z':
-            primary = { 'fahrtnummer': line[3:8],
-                        'verwaltung': line[9:15],
-                        'leer': line[16:19],
-                        'variante': line[19:21] }
+            primary = { 'fahrtnummer': line[3:8].strip(),
+                        'verwaltung': line[9:15].strip(),
+                        'leer': line[16:19].strip(),
+                        'variante': line[19:21].strip() }
 
-            item = { 'taktanzahl': line[22:25],
-                     'takzeit': line[26:29] }
+            item = { 'taktanzahl': line[22:25].strip(),
+                     'takzeit': line[26:29].strip() }
             item.update(primary)
             fplan['Z'].append(item)
 
         elif line[:2] == '*G':
-            item = { 'verkehrsmittel': line[3:6],
-                     'laufwegsindexab': line[7:14],
-                     'laufwegsindexbis': line[15:22],
-                     'indexab': line[23:29],
-                     'indexbis': line[30:36] }
+            item = { 'verkehrsmittel': line[3:6].strip(),
+                     'laufwegsindexab': line[7:14].strip(),
+                     'laufwegsindexbis': line[15:22].strip(),
+                     'indexab': line[23:29].strip(),
+                     'indexbis': line[30:36].strip() }
             item.update(primary)
             fplan['G'].append(item)
 
@@ -153,58 +153,58 @@ def parse_fplan(zip,filename):
             fplan['A'].append(item)
 
         elif line[:2] == '*I':
-            item = { 'infotextcode': line[3:5],
-                     'laufwegsindexab': line[6:13],
-                     'laufwegsindexbis': line[14:21],
-                     'bitfeldnummer': line[22:28],
-                     'infotextnummer': line[29:36],
-                     'indexab': line[37:43],
-                     'indexbis': line[44:50] }
+            item = { 'infotextcode': line[3:5].strip(),
+                     'laufwegsindexab': line[6:13].strip(),
+                     'laufwegsindexbis': line[14:21].strip(),
+                     'bitfeldnummer': line[22:28].strip(),
+                     'infotextnummer': line[29:36].strip(),
+                     'indexab': line[37:43].strip(),
+                     'indexbis': line[44:50].strip() }
             item.update(primary)
             fplan['I'].append(item)
 
         elif line[:2] == '*L':
-            item = { 'liniennummer': line[3:11],
-                     'laufwegsindexab': line[12:19],
-                     'laufwegsindexbis': line[20:27],
-                     'indexab': line[28:34],
-                     'indexbis': line[35:41] }
+            item = { 'liniennummer': line[3:11].strip(),
+                     'laufwegsindexab': line[12:19].strip(),
+                     'laufwegsindexbis': line[20:27].strip(),
+                     'indexab': line[28:34].strip(),
+                     'indexbis': line[35:41].strip() }
             item.update(primary)
             fplan['L'].append(item)
 
         elif line[:2] == '*R':
-            item = { 'kennung': line[3:4],
-                     'richtungscode': line[5:12],
-                     'laufwegsindexab': line[13:20],
-                     'laufwegsindexbis': line[21:28],
-                     'indexab': line[29:35],
-                     'indexbis': line[36:42] }
+            item = { 'kennung': line[3:4].strip(),
+                     'richtungscode': line[5:12].strip(),
+                     'laufwegsindexab': line[13:20].strip(),
+                     'laufwegsindexbis': line[21:28].strip(),
+                     'indexab': line[29:35].strip(),
+                     'indexbis': line[36:42].strip() }
             item.update(primary)
             fplan['R'].append(item)
 
         elif line[:3] == '*GR':
-            item = { 'grenzpunktnummer': line[4:11],
-                     'laufwegsindexletzten': line[12:19],
-                     'laufwegsindexersten': line[21:27],
-                     'indexletzten': line[28:34],
-                     'indexersten': line[35:41] }
+            item = { 'grenzpunktnummer': line[4:11].strip(),
+                     'laufwegsindexletzten': line[12:19].strip(),
+                     'laufwegsindexersten': line[21:27].strip(),
+                     'indexletzten': line[28:34].strip(),
+                     'indexersten': line[35:41].strip() }
             item.update(primary)
             fplan['GR'].append(item)
 
         elif line[:3] == '*SH':
-            item = { 'laufwegindex': line[4:11],
-                     'bitfeldnummer': line[12:18],
-                     'indexfur': line[19:25] }
+            item = { 'laufwegindex': line[4:11].strip(),
+                     'bitfeldnummer': line[12:18].strip(),
+                     'indexfur': line[19:25].strip() }
             item.update(primary)
             fplan['SH'].append(item)
 
         else:
-            item = { 'haltesnellennummer': line[:7],
-                     'haltesnellenname': line[8:29],
-                     'ankunfstzeit': line[29:35],
-                     'abfahrtszeit': line[36:42],
-                     'fahrtnummer': line[43:48],
-                     'verwaltung': line[49:55],
+            item = { 'haltesnellennummer': line[:7].strip(),
+                     'haltesnellenname': line[8:29].strip(),
+                     'ankunfstzeit': line[29:35].strip(),
+                     'abfahrtszeit': line[36:42].strip(),
+                     'fahrtnummer': line[43:48].strip(),
+                     'verwaltung': line[49:55].strip(),
                      'x': line[56:57] }
             fplan['LAUFWEG'].append(item)
     return fplan
