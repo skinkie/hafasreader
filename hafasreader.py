@@ -5,6 +5,7 @@ from copy import copy
 import psycopg2
 import codecs
 import zipfile
+import fileinput
 from bitstring import Bits
 
 charset = 'cp437'
@@ -22,7 +23,7 @@ def simple_list_writer(conn,filename, arguments, data):
         f.write('\t'.join([unicode(y[z] or '') for z in arguments]) + '\n')
     f.seek(0)
     cur = conn.cursor()
-    cur.copy_expert("COPY %s FROM STDIN USING DELIMITERS '	' CSV HEADER" % (filename),f)
+    cur.copy_expert("COPY %s FROM STDIN USING DELIMITERS '	' CSV HEADER NULL AS ''" % (filename),f)
     cur.close()
     f.close()
 
@@ -33,7 +34,7 @@ def simple_dict_writer(conn,filename, arguments, data):
         f.write('\t'.join([unicode(x)] + [unicode(y[z] or '') for z in arguments[1:]]) + '\n')
     f.seek(0)
     cur = conn.cursor()
-    cur.copy_expert("COPY %s FROM STDIN USING DELIMITERS '	' CSV HEADER" % (filename),f)
+    cur.copy_expert("COPY %s FROM STDIN USING DELIMITERS '	' CSV HEADER NULL AS ''" % (filename),f)
     cur.close()
     f.close()
 
@@ -45,14 +46,14 @@ def simple_dict_list_writer(conn,filename, arguments, data):
             f.write('\t'.join([unicode(x)] + [unicode(u[z] or '') for z in arguments[1:]]) + '\n')
     f.seek(0)
     cur = conn.cursor()
-    cur.copy_expert("COPY %s FROM STDIN USING DELIMITERS '	' CSV HEADER" % (filename),f)
+    cur.copy_expert("COPY %s FROM STDIN USING DELIMITERS '	' CSV HEADER NULL AS ''" % (filename),f)
     cur.close()
     f.close()
 
 def parse_bahnhof(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     bahnhofen = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         haltestellennummer = line[:7].strip()
         haltestellenname = line[12:].split('$<')
         name = haltestellenname[0]
@@ -74,9 +75,8 @@ def parse_bahnhof(zip,filename):
     return bahnhofen
 
 def parse_bfkoord(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     bfkoord = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
         haltestellennummer = line[:7].strip()
         x = line[8:18].strip()
         y = line[19:29].strip()
@@ -87,9 +87,7 @@ def parse_bfkoord(zip,filename):
                         'z' : z})
     return bfkoord
 
-def parse_fplan(zip,filename):
-    #file = zip.open(filename)
-    file = open('fap_aktuell/FPLAN') #Temporary hack to avoid memory allocation like a drunken sailor
+def parse_fplan(zip,filename,conn):
     fplan = {}
     fplan['Z'] = []
     fplan['G'] = []
@@ -101,25 +99,41 @@ def parse_fplan(zip,filename):
     fplan['SH'] = []
     fplan['L'] = []
     fplan['LAUFWEG'] = []
+    idx = 0
 
     primary = None
 
-    for line in file:
-        line = line.decode(charset)
+    for line in fileinput.input([filename], openhook=zip.open):
+
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         # SBB has all keys already per line.
         kommentar = { 'fahrtnummer': line[60:65],
                       'verwaltung': line[66:72],
-                      'leer': line[73:76],
                       'variante': line[76:78],
                       'zeilennummer': line[80:83] }
 
         if line[:2] == '*Z':
-            primary = { 'fahrtnummer': line[3:8].strip(),
-                        'verwaltung': line[9:15].strip(),
-                        'leer': line[16:18].strip(),
-                        'variante': line[18:21].strip() }
+            if len(fplan['Z']) == 1000:
+                sql_fplan(conn,fplan)
+                fplan = {}
+                fplan['Z'] = []
+                fplan['G'] = []
+                fplan['A_VE'] = []
+                fplan['A'] = []
+                fplan['I'] = []
+                fplan['R'] = []
+                fplan['GR'] = []
+                fplan['SH'] = []
+                fplan['L'] = []
+                fplan['LAUFWEG'] = []
 
-            item = { 'taktanzahl': line[22:25].strip(),
+            idx = idx + 1
+            primary = { 'id': idx }
+
+            item = { 'fahrtnummer': line[3:8].strip(),
+                     'verwaltung': line[9:15].strip(),
+                     'variante': line[18:21].strip(),
+                     'taktanzahl': line[22:25].strip(),
                      'takzeit': line[26:29].strip() }
             item.update(primary)
             fplan['Z'].append(item)
@@ -134,21 +148,21 @@ def parse_fplan(zip,filename):
             fplan['G'].append(item)
 
         elif line[:5] == '*A VE':
-            item = { 'laufwegsindexab': line[6:13],
-                     'laufwegsindexbis': line[14:21],
-                     'verkehrstagenummer': line[22:28],
-                     'indexab': line[29:35],
-                     'indexbis': line[36:42] }
+            item = { 'laufwegsindexab': line[6:13].strip(),
+                     'laufwegsindexbis': line[14:21].strip(),
+                     'verkehrstagenummer': line[22:28].strip(),
+                     'indexab': line[29:35].strip(),
+                     'indexbis': line[36:42].strip() }
             item.update(primary)
             fplan['A_VE'].append(item)
 
         elif line[:2] == '*A':
-            item = { 'attributscode': line[3:5],
-                     'laufwegsindexab': line[6:13],
-                     'laufwegsindexbis': line[14:21],
-                     'bitfeldnummer': line[22:28],
-                     'indexab': line[29:35],
-                     'indexbis': line[36:42] }
+            item = { 'attributscode': line[3:5].strip(),
+                     'laufwegsindexab': line[6:13].strip(),
+                     'laufwegsindexbis': line[14:21].strip(),
+                     'bitfeldnummer': line[22:28].strip(),
+                     'indexab': line[29:35].strip(),
+                     'indexbis': line[36:42].strip() }
             item.update(primary)
             fplan['A'].append(item)
 
@@ -199,34 +213,36 @@ def parse_fplan(zip,filename):
             fplan['SH'].append(item)
 
         else:
-            item = { 'haltesnellennummer': line[:7].strip(),
-                     'haltesnellenname': line[8:29].strip(),
+            item = { 'haltestellennummer': line[:7].strip(),
+                     'haltestellenname': line[8:29].strip(),
                      'ankunfstzeit': line[29:35].strip(),
                      'abfahrtszeit': line[36:42].strip(),
                      'fahrtnummer': line[43:48].strip(),
                      'verwaltung': line[49:55].strip(),
                      'x': line[56:57] }
+            item.update(primary)
             fplan['LAUFWEG'].append(item)
     return fplan
 
 def parse_dirwagen(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
-    kw_zeilen = []
-    kurswagennummers = set([])
+    kw = []
     kwz_zeilen = []
     a_ve_zeilen = []
     a_zeilen = []
     kurswagennummer = None
+    idx = 0
 
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         if line[:3] == '*KW':
+            idx = idx + 1
             kurswagennummer = line[4:9]
-            item = { 'kurswagennummer': kurswagennummer }
-            if int(kurswagennummer) not in kurswagennummers:
-                kw_zeilen.append(item)
-                kurswagennummers.add(int(kurswagennummer))
+            item = { 'id': idx,
+                     'kurswagennummer': kurswagennummer }
+            kw.append(item)
+
         elif line[:4] == '*KWZ':
-            item = { 'kurswagennummer': kurswagennummer,
+            item = { 'id': idx,
                      'zugnummer': line[5:10],
                      'verhaltung': line[11:17],
                      'bahnhofsnummerab': line[18:25],
@@ -237,21 +253,21 @@ def parse_dirwagen(zip,filename):
             kwz_zeilen.append(item)
 
         elif line[:5] == '*A VE':
-            item = { 'kurswagennummer': kurswagennummer,
+            item = { 'id': idx,
                      'laufwegindexab': line[6:13].strip(),
                      'laufwegindexbis': line[14:21].strip(),
                      'verkehrstagenummer': line[22:28].strip() }
             a_ve_zeilen.append(item)
 
         elif line[:2] == '*A':
-            item = { 'kurswagennummer': kurswagennummer,
+            item = { 'id': idx,
                      'attributscode': line[3:5],
                      'laufwegsindexab': line[6:13],
                      'laufwegsindexbis': line[14:21] }
             a_zeilen.append(item)
 
         #item.update(kommentar)
-    return kw_zeilen,kwz_zeilen,a_ve_zeilen,a_zeilen
+    return kw,kwz_zeilen,a_ve_zeilen,a_zeilen
 
 def parse_eckdaten(zip,filename):
     l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
@@ -268,9 +284,9 @@ def parse_eckdaten(zip,filename):
     return eckdaten
 
 def parse_bitfeld(zip,filename,eckdaten):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     bitfelds = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         bitfeldnummer = line[:6]
         bitfeld = {'bitfeldnummer' : bitfeldnummer,'dates' : []}
         bitstring = str(Bits(hex=line[8:]).bin)
@@ -282,9 +298,9 @@ def parse_bitfeld(zip,filename,eckdaten):
 
 
 def parse_bfkoord_geo(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     bfkoord_geo = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         haltestellennummer = int(line[:7].strip())
         x = line[8:18].strip()
         y = line[19:29].strip()
@@ -296,26 +312,28 @@ def parse_bfkoord_geo(zip,filename):
     return bfkoord_geo
 
 def parse_umsteigb(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     umsteigb = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         umsteigb.append({'haltestellennummer' : line[:7],
                          'umsteigezeit_ic' : line[8:10],
                          'umsteigezeit' : line[11:13]})
     return umsteigb
 
 def parse_bfprios(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     bfprios = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         bfprios.append({'haltestellennummer' : line[:7],
                         'umsteigeprioritat' : line[8:10]})
     return bfprios
 
 def parse_vereinig(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     vereinig = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         vereinig.append({'haltestellennummer1' : line[:7],
                          'haltestellennummer2' : line[8:15],
                          'fahrtnummer1' : line[16:21],
@@ -326,25 +344,28 @@ def parse_vereinig(zip,filename):
     return vereinig
 
 def parse_infotext(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     infotext = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         infotext.append({'infotextnummer' : line[:8],
                          'informationstext' : line[8:]})
     return infotext
 
 def parse_kminfo(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     kminfo = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         kminfo.append({'haltestellennummer' : line[:7],
                        'wert' : line[8:13]})
     return kminfo
 
 def parse_umsteigv(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     umsteigv = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         haltestellennummer = line[:7]
         if haltestellennummer == '@@@@@@@':
             haltestellennummer = None
@@ -355,9 +376,10 @@ def parse_umsteigv(zip,filename):
     return umsteigv
 
 def parse_umsteigl(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     umsteigl = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         haltestellennummer = line[:7]
         if haltestellennummer == '@@@@@@@':
             haltestellennummer = None
@@ -375,9 +397,10 @@ def parse_umsteigl(zip,filename):
     return umsteigl
 
 def parse_umsteigz(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     umsteigz = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         haltestellennummer = line[:7]
         if haltestellennummer == '@@@@@@@':
             haltestellennummer = None
@@ -391,9 +414,9 @@ def parse_umsteigz(zip,filename):
     return umsteigz
 
 def parse_gleis(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     gleis = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         if line[0] == '%':
             continue #Nothing mentioned about this in docs??
         gleis.append({ 'haltestellennummer' : line[:7].strip(),
@@ -405,10 +428,10 @@ def parse_gleis(zip,filename):
     return gleis
 
 def parse_betrieb(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     betrieb1 = []
     betrieb2 = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         if line[6] == ':':
             betrieb2.append({'betreibernummer' : line[:5],
                              'verwaltungen' : line[8:]})
@@ -453,10 +476,10 @@ def parse_betrieb(zip,filename):
     return betrieb1,betrieb2
 
 def parse_attribut(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     attribut1 = []
     attribut2 = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         if line[0] == '#':
             attribut2.append({'code' : line[2:4],
                               'ausgabe_der_teilstrecke' : line[5:7], #Or wtf ever this means?/
@@ -470,9 +493,9 @@ def parse_attribut(zip,filename):
     return attribut1,attribut2
 
 def parse_richtung(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     richtung = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
         richtung.append({'richtingschlussel' : line[:7],
                          'text' : line[9:]})
     return richtung
@@ -508,13 +531,13 @@ def parse_metabhf(zip,filename):
     return metabhf_ubergangbeziehung,metabhf_ubergangbeziehung_a,metabhf_haltestellengruppen
 
 def parse_zugart(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     zugart = []
     zugart_category = {}
     zugart_class = {}
     angaben = False
     language = None
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '').replace('\n', '')
         if line == '':
             angaben = True
             continue
@@ -544,9 +567,10 @@ def parse_zugart(zip,filename):
     return zugart
 
 def parse_durchbi(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     durchbi = []
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+
         item = { 'fahrtnummer1' : line[:5],
                  'verwaltungfahrt1': line[6:12],
                  'letzterhaltderfahrt1': line[13:20],
@@ -560,23 +584,25 @@ def parse_durchbi(zip,filename):
     return durchbi
 
 def parse_zeitvs(zip,filename):
-    l_content = zip.read(filename).decode(charset).split('\r\n')[:-1]
     zeitvs = {}
-    for line in l_content:
+    for line in fileinput.input([filename], openhook=zip.open):
+        line = line.decode(charset).replace('\r', '').replace('\n', '')
+        if line[0] == '%':
+            continue
+
         bahnhofsnummer = line[:7]
 
         if (len(line) >= 17 and line[16] != '%'):
             item = { 'bahnhofsnummer' : bahnhofsnummer,
-                     'zeitverschiebung': line[8:13],
-                     'vondatum': line[14:22],
-                     'vonzugehorigezeit': line[23:26],
-                     'bisdatum': line[29:36],
-                     'biszugehorigezeit': line[37:41],
-                     'kommentar': line[42:] }
-        elif len(line) == 1 and line[0] == '%':
-            continue
+                     'zeitverschiebung1': line[8:13].strip(),
+                     'zeitverschiebung2': line[14:19].strip(), # TODO no docs
+                     'vondatum': line[20:28].strip(),
+                     'vonzugehorigezeit': line[29:33].strip(),
+                     'bisdatum': line[34:42].strip(),
+                     'biszugehorigezeit': line[43:47].strip(),
+                     'kommentar': line[50:].strip() }
         else:
-            item = zeitvs[bahnhofsnummer].copy()
+            item = zeitvs[line[8:15]].copy()
             item['bahnhofsnummer'] = bahnhofsnummer
 
         zeitvs[bahnhofsnummer] = item
@@ -602,115 +628,165 @@ def sql_bitfeld(conn,bitfeld):
     f.close()
 
 def sql_fplan(conn,fplan):
-    primary = ['fahrtnummer','verwaltung','leer','variante']
-    simple_list_writer(conn,'fplan_z', primary +['taktanzahl','takzeit'], fplan['Z'])
+    primary = ['id']
+    simple_list_writer(conn,'fplan_z', primary +['fahrtnummer','verwaltung','variante','taktanzahl','takzeit'], fplan['Z'])
     simple_list_writer(conn,'fplan_g', primary +['verkehrsmittel','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['G'])
     simple_list_writer(conn,'fplan_ave', primary +['laufwegsindexab','laufwegsindexbis','verkehrstagenummer','indexab','indexbis'], fplan['A_VE'])
     simple_list_writer(conn,'fplan_a', primary +['attributscode','laufwegsindexab','laufwegsindexbis','bitfeldnummer','indexab','indexbis'], fplan['A'])
     simple_list_writer(conn,'fplan_i', primary +['infotextcode','laufwegsindexab','laufwegsindexbis','bitfeldnummer','infotextnummer','indexab','indexbis'], fplan['I'])
-    simple_list_writer(conn,'fplan_r', primary +['richtungscode','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['R'])
+    simple_list_writer(conn,'fplan_r', primary +['kennung','richtungscode','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['R'])
     simple_list_writer(conn,'fplan_gr', primary +['grenzpunktnummer','laufwegsindexletzten','laufwegsindexersten','indexletzten','indexersten'], fplan['GR'])
-    simple_list_writer(conn,'fplan_sh', primary +['richtungscode','laufwegindex','bitfeldnummer','indexfur'], fplan['SH'])
-    simple_list_writer(conn,'fplan_l', primary +['linienummer','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['L'])
-    simple_list_writer(conn,'fplan_laufweg', primary +['linienummer','haltestellennummer','haltestellenname','ankunfstzeit','abfahrtszeit','fahrtnummer','verwaltung','x'], fplan['L'])
+    simple_list_writer(conn,'fplan_sh', primary +['laufwegindex','bitfeldnummer','indexfur'], fplan['SH'])
+    simple_list_writer(conn,'fplan_l', primary +['liniennummer','laufwegsindexab','laufwegsindexbis','indexab','indexbis'], fplan['L'])
+    simple_list_writer(conn,'fplan_laufweg', primary +['haltestellennummer','haltestellenname','ankunfstzeit','abfahrtszeit','fahrtnummer','verwaltung','x'], fplan['LAUFWEG'])
 
 
 def load(path,filename):
+    conn = psycopg2.connect("dbname='hafastmp' user='postgres'")
+
     zip = zipfile.ZipFile(path+'/'+filename,'r')
     files = filedict(zip)
-    bahnhof = parse_bahnhof(zip,files['BAHNHOF'])
-    bfkoord = parse_bfkoord(zip,files['BFKOORD'])
-    bfkoord_geo = parse_bfkoord_geo(zip,files['BFKOORD_GEO'])
-    eckdaten = parse_eckdaten(zip,files['ECKDATEN'])
-    bitfeld = parse_bitfeld(zip,files['BITFELD'],eckdaten)
-    zugart = parse_zugart(zip,files['ZUGART'])
-    metabhf_ubergangbeziehung,metabhf_ubergangbeziehung_a,metabhf_haltestellengruppen = parse_metabhf(zip,files['METABHF'])
-    umsteigb = parse_umsteigb(zip,files['UMSTEIGB'])
-    attribut1_de,attribut2_de = parse_attribut(zip,files['ATTRIBUT_DE'])
-    attribut1_en,attribut2_en = parse_attribut(zip,files['ATTRIBUT_EN'])
-    attribut1_fr,attribut2_fr = parse_attribut(zip,files['ATTRIBUT_FR'])
-    attribut1_it,attribut2_it = parse_attribut(zip,files['ATTRIBUT_IT'])
-    bfprios = parse_bfprios(zip,files['BFPRIOS'])
-    infotext_en = parse_infotext(zip,files['INFOTEXT_EN'])
-    infotext_fr = parse_infotext(zip,files['INFOTEXT_FR'])
-    infotext_it = parse_infotext(zip,files['INFOTEXT_IT'])
-    infotext_de = parse_infotext(zip,files['INFOTEXT_DE'])
-    kminfo = parse_kminfo(zip,files['KMINFO'])
-    umsteigv = parse_umsteigv(zip,files['UMSTEIGV'])
-    umsteigl = parse_umsteigl(zip,files['UMSTEIGL'])
-    umsteigz = parse_umsteigz(zip,files['UMSTEIGZ'])
-    #if 'VEREINIG' in files:
-    #    vereinig = parse_vereinig(zip,files['VEREINIG'])
-    durchbi = parse_durchbi(zip,files['DURCHBI'])
-    richtung = parse_richtung(zip,files['RICHTUNG'])
-    #zeitvs = parse_zeitvs(zip,files['ZEITVS']) #TODO TODO TODO
-    gleis = parse_gleis(zip,files['GLEIS'])
-    betrieb1_en,betrieb2_en = parse_betrieb(zip,files['BETRIEB_EN'])
-    betrieb1_de,betrieb2_de = parse_betrieb(zip,files['BETRIEB_DE'])
-    betrieb1_it,betrieb2_it= parse_betrieb(zip,files['BETRIEB_IT'])
-    betrieb1_fr,betrieb2_fr = parse_betrieb(zip,files['BETRIEB_FR'])
-    dirwagen_kw,dirwagen_kwz,dirwagen_ave,dirwagen_a = parse_dirwagen(zip,files['DIRWAGEN'])
-    fplan = parse_fplan(zip,files['FPLAN'])
 
-    #Import to SQL
-    conn = psycopg2.connect("dbname='hafastmp'")
+    bahnhof = parse_bahnhof(zip,files['BAHNHOF'])
     simple_list_writer(conn,'bahnhof', ['haltestellennummer','name','longname','abkurzung','synonym'], bahnhof)
+    bahnhof = None
+
+    bfkoord = parse_bfkoord(zip,files['BFKOORD'])
     simple_list_writer(conn,'bfkoord', ['haltestellennummer','x','y','z'], bfkoord)
+    bfkoord = None
+
+    bfkoord_geo = parse_bfkoord_geo(zip,files['BFKOORD_GEO'])
     simple_list_writer(conn,'bfkoord_geo', ['haltestellennummer','x','y','z'], bfkoord_geo)
+    bfkoord_geo = None
+
+    eckdaten = parse_eckdaten(zip,files['ECKDATEN'])
     simple_list_writer(conn,'eckdaten', ['fahrplan_start','fahrplan_end','bezeichnung','fahrplan_periode','land','exportdatum','hrdf_version','lieferant'], [eckdaten])
+    bitfeld = parse_bitfeld(zip,files['BITFELD'],eckdaten)
     #sql_bitfeld(conn,bitfeld)
+    eckdaten = None
+
+    zugart = parse_zugart(zip,files['ZUGART'])
     simple_list_writer(conn,'zugart', ['code','produktklasse','tarifgruppe','ausgabesteuerung','gattungsbezeichnung','zuschlag','flag','gattungsbildernamen','category_franzoesisch','category_italienisch','category_deutsch','category_englisch'], zugart)
+    zugart = None
+
+    metabhf_ubergangbeziehung,metabhf_ubergangbeziehung_a,metabhf_haltestellengruppen = parse_metabhf(zip,files['METABHF'])
     simple_list_writer(conn,'metabhf_ubergangbeziehung', ['haltestellennummer1','haltestellennummer2','dauer'], metabhf_ubergangbeziehung)
     simple_list_writer(conn,'metabhf_ubergangbeziehung_a', ['haltestellennummer1','haltestellennummer2','attributscode'], metabhf_ubergangbeziehung_a)
     simple_list_writer(conn,'metabhf_haltestellengruppen', ['sammelbegriffsnummer','haltestellennummer'], metabhf_haltestellengruppen)
-    simple_list_writer(conn,'umsteigb', ['haltestellennummer','umsteigezeit_ic','umsteigezeit'], umsteigb)
+    metabhf_ubergangbeziehung,metabhf_ubergangbeziehung_a,metabhf_haltestellengruppen = [None, None, None]
 
+    umsteigb = parse_umsteigb(zip,files['UMSTEIGB'])
+    simple_list_writer(conn,'umsteigb', ['haltestellennummer','umsteigezeit_ic','umsteigezeit'], umsteigb)
+    umsteigb = None
+
+    attribut1_de,attribut2_de = parse_attribut(zip,files['ATTRIBUT_DE'])
     simple_list_writer(conn,'attribut2_de', ['code','ausgabe_der_teilstrecke','einstellig'], attribut2_de)
     simple_list_writer(conn,'attribut1_de', ['code','haltestellenzugehorigkeit','attributsausgabeprioritat','attibutsausgabefeinsortierung','text'], attribut1_de)
+    attribut1_de,attribut2_de = [None, None]
 
+    attribut1_en,attribut2_en = parse_attribut(zip,files['ATTRIBUT_EN'])
     simple_list_writer(conn,'attribut2_en', ['code','ausgabe_der_teilstrecke','einstellig'], attribut2_en)
     simple_list_writer(conn,'attribut1_en', ['code','haltestellenzugehorigkeit','attributsausgabeprioritat','attibutsausgabefeinsortierung','text'], attribut1_en)
+    attribut1_en,attribut2_en = [None, None]
 
+    attribut1_fr,attribut2_fr = parse_attribut(zip,files['ATTRIBUT_FR'])
     simple_list_writer(conn,'attribut2_fr', ['code','ausgabe_der_teilstrecke','einstellig'], attribut2_fr)
     simple_list_writer(conn,'attribut1_fr', ['code','haltestellenzugehorigkeit','attributsausgabeprioritat','attibutsausgabefeinsortierung','text'], attribut1_fr)
+    attribut1_fr,attribut2_fr = [None, None]
 
+    attribut1_it,attribut2_it = parse_attribut(zip,files['ATTRIBUT_IT'])
     simple_list_writer(conn,'attribut2_it', ['code','ausgabe_der_teilstrecke','einstellig'], attribut2_it)
     simple_list_writer(conn,'attribut1_it', ['code','haltestellenzugehorigkeit','attributsausgabeprioritat','attibutsausgabefeinsortierung','text'], attribut1_it)
+    attribut1_it,attribut2_it = [None, None]
 
+    bfprios = parse_bfprios(zip,files['BFPRIOS'])
     simple_list_writer(conn,'bfprios', ['haltestellennummer','umsteigeprioritat'], bfprios)
+    bfprios = None
 
+    infotext_de = parse_infotext(zip,files['INFOTEXT_DE'])
     simple_list_writer(conn,'infotext_de', ['infotextnummer','informationstext'], infotext_de)
+    infotext_de = None
+
+    infotext_en = parse_infotext(zip,files['INFOTEXT_EN'])
     simple_list_writer(conn,'infotext_en', ['infotextnummer','informationstext'], infotext_en)
+    infotext_en = None
+
+    infotext_fr = parse_infotext(zip,files['INFOTEXT_FR'])
     simple_list_writer(conn,'infotext_fr', ['infotextnummer','informationstext'], infotext_fr)
+    infotext_fr = None
+
+    infotext_it = parse_infotext(zip,files['INFOTEXT_IT'])
     simple_list_writer(conn,'infotext_it', ['infotextnummer','informationstext'], infotext_it)
+    infotext_it = None
 
+    kminfo = parse_kminfo(zip,files['KMINFO'])
     simple_list_writer(conn,'kminfo', ['haltestellennummer','wert'], kminfo)
-    simple_list_writer(conn,'umsteigv', ['haltestellennummer','verwaltungsbezeichnung1','verwaltungsbezeichnung2','mindestumsteigezeit'], umsteigv)
-    simple_list_writer(conn,'umsteigl', ['haltestellennummer','verwaltung1','gattung1','linie1','richtung1','verwaltung2','gattung2','linie2','richtung2','umsteigezeit','garantiert'], umsteigl)
-    simple_list_writer(conn,'umsteigz', ['haltestellennummer','fahrtnummer1','verwaltung1','fahrtnummer2','verwaltung2','umsteigezeit','garantiert'], umsteigz)
-    simple_list_writer(conn,'durchbi', ['fahrtnummer1','verwaltungfahrt1','letzterhaltderfahrt1','fahrtnummer2','verwaltungfahrt2','verkehrstagebitfeldnummer','ersterhaltderfahrt2','attributmarkierungdurchbindung','kommentar'], durchbi)
-    simple_list_writer(conn,'richtung', ['richtingschlussel','text'], richtung)
-    #simple_list_writer(conn,'zeitvs', ['richtingschlussel','text'], zeitvs)
-    simple_list_writer(conn,'gleis', ['haltestellennummer','fahrtnummer','verwaltung','gleisinformation','zeit','verkehrstageschlussel'], gleis)
+    kminfo = None
 
+    umsteigv = parse_umsteigv(zip,files['UMSTEIGV'])
+    simple_list_writer(conn,'umsteigv', ['haltestellennummer','verwaltungsbezeichnung1','verwaltungsbezeichnung2','mindestumsteigezeit'], umsteigv)
+    umsteigv = None
+
+    umsteigl = parse_umsteigl(zip,files['UMSTEIGL'])
+    simple_list_writer(conn,'umsteigl', ['haltestellennummer','verwaltung1','gattung1','linie1','richtung1','verwaltung2','gattung2','linie2','richtung2','umsteigezeit','garantiert'], umsteigl)
+    umsteigl = None
+
+    umsteigz = parse_umsteigz(zip,files['UMSTEIGZ'])
+    simple_list_writer(conn,'umsteigz', ['haltestellennummer','fahrtnummer1','verwaltung1','fahrtnummer2','verwaltung2','umsteigezeit','garantiert'], umsteigz)
+    umsteigz = None
+
+    #if 'VEREINIG' in files:
+    #    vereinig = parse_vereinig(zip,files['VEREINIG'])
+    durchbi = parse_durchbi(zip,files['DURCHBI'])
+    simple_list_writer(conn,'durchbi', ['fahrtnummer1','verwaltungfahrt1','letzterhaltderfahrt1','fahrtnummer2','verwaltungfahrt2','verkehrstagebitfeldnummer','ersterhaltderfahrt2','attributmarkierungdurchbindung','kommentar'], durchbi)
+    durchbi = None
+
+    richtung = parse_richtung(zip,files['RICHTUNG'])
+    simple_list_writer(conn,'richtung', ['richtingschlussel','text'], richtung)
+    richtung = None
+
+    zeitvs = parse_zeitvs(zip,files['ZEITVS'])
+    simple_list_writer(conn,'zeitvs', ['bahnhofsnummer','zeitverschiebung1','zeitverschiebung2','vondatum','vonzugehorigezeit','bisdatum','biszugehorigezeit','kommentar'], zeitvs)
+    zeitvs = None
+
+    gleis = parse_gleis(zip,files['GLEIS'])
+    simple_list_writer(conn,'gleis', ['haltestellennummer','fahrtnummer','verwaltung','gleisinformation','zeit','verkehrstageschlussel'], gleis)
+    gleis = None
+
+    betrieb1_de,betrieb2_de = parse_betrieb(zip,files['BETRIEB_DE'])
     simple_list_writer(conn,'betrieb1_de', ['betreibernummer','kurzname','langname','name'], betrieb1_de)
     simple_list_writer(conn,'betrieb2_de', ['betreibernummer','verwaltungen'], betrieb2_de)
+    betrieb1_de,betrieb2_de = [None, None]
 
+
+    betrieb1_en,betrieb2_en = parse_betrieb(zip,files['BETRIEB_EN'])
     simple_list_writer(conn,'betrieb1_en', ['betreibernummer','kurzname','langname','name'], betrieb1_en)
     simple_list_writer(conn,'betrieb2_en', ['betreibernummer','verwaltungen'], betrieb2_en)
+    betrieb1_en,betrieb2_en = [None, None]
 
-    simple_list_writer(conn,'betrieb1_fr', ['betreibernummer','kurzname','langname','name'], betrieb1_fr)
-    simple_list_writer(conn,'betrieb2_fr', ['betreibernummer','verwaltungen'], betrieb2_fr)
 
+    betrieb1_it,betrieb2_it= parse_betrieb(zip,files['BETRIEB_IT'])
     simple_list_writer(conn,'betrieb1_it', ['betreibernummer','kurzname','langname','name'], betrieb1_it)
     simple_list_writer(conn,'betrieb2_it', ['betreibernummer','verwaltungen'], betrieb2_it)
+    betrieb1_it,betrieb2_it = [None, None]
 
 
-    simple_list_writer(conn,'dirwagen_kw', ['kurswagennummer'], dirwagen_kw)
-    simple_list_writer(conn,'dirwagen_kwz', ['kurswagennummer','zugnummer','verhaltung','bahnhofsnummerab','bahnhofsname','bahnhofsnummerbis','abfahrtzeit1','abfahrtzeit2'], dirwagen_kwz)
-    simple_list_writer(conn,'dirwagen_ave', ['kurswagennummer','laufwegindexab','laufwegindexbis','verkehrstagenummer'], dirwagen_ave)
-    simple_list_writer(conn,'dirwagen_a', ['kurswagennummer','attributscode','laufwegsindexab','laufwegsindexbis','bitfeldnummer','indexab','indexbis'], dirwagen_a)
+    betrieb1_fr,betrieb2_fr = parse_betrieb(zip,files['BETRIEB_FR'])
+    simple_list_writer(conn,'betrieb1_fr', ['betreibernummer','kurzname','langname','name'], betrieb1_fr)
+    simple_list_writer(conn,'betrieb2_fr', ['betreibernummer','verwaltungen'], betrieb2_fr)
+    betrieb1_fr,betrieb2_fr = [None, None]
+
+    dirwagen_kw,dirwagen_kwz,dirwagen_ave,dirwagen_a = parse_dirwagen(zip,files['DIRWAGEN'])
+    simple_list_writer(conn,'dirwagen_kw', ['id', 'kurswagennummer'], dirwagen_kw)
+    simple_list_writer(conn,'dirwagen_kwz', ['id','zugnummer','verhaltung','bahnhofsnummerab','bahnhofsname','bahnhofsnummerbis','abfahrtzeit1','abfahrtzeit2'], dirwagen_kwz)
+    simple_list_writer(conn,'dirwagen_ave', ['id','laufwegindexab','laufwegindexbis','verkehrstagenummer'], dirwagen_ave)
+    simple_list_writer(conn,'dirwagen_a', ['id','attributscode','laufwegsindexab','laufwegsindexbis','bitfeldnummer','indexab','indexbis'], dirwagen_a)
+    dirwagen_kw,dirwagen_kwz,dirwagen_ave,dirwagen_a = [None, None, None, None]
+
+    fplan = parse_fplan(zip,files['FPLAN'],conn)
     sql_fplan(conn,fplan)
+    fplan = None
+
     conn.commit()
 if __name__ == '__main__':
     load(sys.argv[1],sys.argv[2])
