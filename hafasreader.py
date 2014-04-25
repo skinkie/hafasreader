@@ -88,8 +88,8 @@ def parse_bfkoord(zip,filename):
     return bfkoord
 
 def parse_fplan(zip,filename):
-    file = zip.open(filename)
-
+    #file = zip.open(filename)
+    file = open('fap_aktuell/FPLAN') #Temporary hack to avoid memory allocation like a drunken sailor
     fplan = {}
     fplan['Z'] = []
     fplan['G'] = []
@@ -116,8 +116,8 @@ def parse_fplan(zip,filename):
         if line[:2] == '*Z':
             primary = { 'fahrtnummer': line[3:8].strip(),
                         'verwaltung': line[9:15].strip(),
-                        'leer': line[16:19].strip(),
-                        'variante': line[19:21].strip() }
+                        'leer': line[16:18].strip(),
+                        'variante': line[18:21].strip() }
 
             item = { 'taktanzahl': line[22:25].strip(),
                      'takzeit': line[26:29].strip() }
