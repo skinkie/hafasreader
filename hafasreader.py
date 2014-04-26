@@ -662,8 +662,9 @@ def load(path,filename):
     eckdaten = parse_eckdaten(zip,files['ECKDATEN'])
     simple_list_writer(conn,'eckdaten', ['fahrplan_start','fahrplan_end','bezeichnung','fahrplan_periode','land','exportdatum','hrdf_version','lieferant'], [eckdaten])
     bitfeld = parse_bitfeld(zip,files['BITFELD'],eckdaten)
-    #sql_bitfeld(conn,bitfeld)
+    sql_bitfeld(conn,bitfeld)
     eckdaten = None
+    bitfeld = None
 
     zugart = parse_zugart(zip,files['ZUGART'])
     simple_list_writer(conn,'zugart', ['code','produktklasse','tarifgruppe','ausgabesteuerung','gattungsbezeichnung','zuschlag','flag','gattungsbildernamen','category_franzoesisch','category_italienisch','category_deutsch','category_englisch'], zugart)
