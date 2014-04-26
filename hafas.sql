@@ -342,7 +342,7 @@ CREATE TABLE fplan_i (
 
 CREATE TABLE fplan_l (
     id integer,
-    linienummer char(8) NOT NULL,
+    liniennummer char(8) NOT NULL,
     laufwegsindexab integer,
     laufwegsindexbis integer,
     indexab integer,
