@@ -8,7 +8,7 @@ import zipfile
 import fileinput
 from bitstring import Bits
 
-charset = 'cp437'
+charset = 'iso-8859-1'
 
 out = codecs.getwriter('utf-8')(sys.stdout)
 
